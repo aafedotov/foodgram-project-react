@@ -72,26 +72,10 @@ class CustomUser(AbstractBaseUser):
     last_name = models.CharField(max_length=150, blank=True,
                                  verbose_name='фамилия')
 
-    USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['email']
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'password', 'first_name', 'last_name']
 
     objects = CustomUserManager()
-
-    @property
-    def is_user(self):
-        """Описываем свойства для пермишенов."""
-        return self.role == UserRole.USER
-
-    @property
-    def is_admin_or_superuser(self):
-        """Описываем свойства для пермишенов."""
-        return self.role == UserRole.ADMIN or self.is_superuser
-
-    @property
-    def is_admin_or_moderator(self):
-        """Описываем свойства для пермишенов."""
-        return (self.role in (UserRole.ADMIN, UserRole.MODERATOR)
-                or self.is_superuser)
 
     def __str__(self):
         return self.username

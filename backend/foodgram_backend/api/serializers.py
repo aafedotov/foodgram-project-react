@@ -36,3 +36,11 @@ class UserSerializer(serializers.ModelSerializer):
                         'password': {'required': True}
                         }
         model = User
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Сериализатор для эндпоинта смены пароля пользователя."""
+    model = User
+
+    current_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)

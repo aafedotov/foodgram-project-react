@@ -80,4 +80,41 @@ class Recipe(models.Model):
         return self.name
 
 
+class RecipeTag(models.Model):
+    """Промежуточная таблица для связи рецептов с тегами."""
 
+    recipe = models.ForeignKey(
+        Recipe,
+        verbose_name='Рецепт',
+        on_delete=models.CASCADE
+    )
+    tag = models.ForeignKey(
+        Tag,
+        verbose_name='Тег',
+        on_delete=models.CASCADE
+    )
+
+
+class RecipeIngredient(models.Model):
+    """Промежуточная таблица для связи рецептов и ингредиентов."""
+
+    recipe = models.ForeignKey(
+        Recipe,
+        verbose_name='Рецепт',
+        on_delete=models.CASCADE
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        verbose_name='Ингредиент',
+        on_delete=models.CASCADE
+    )
+    amount = models.IntegerField(validators=[MinValueValidator(1)],
+                                 verbose_name='Количество')
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'ingredient'],
+                name='unique_ingredient_in_recipe'
+            )
+        ]

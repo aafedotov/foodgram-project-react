@@ -3,15 +3,26 @@ from django.db import models
 from django.core.validators import MinValueValidator
 
 
+class MeasurementUnit(models.Model):
+    """Описание модели для единиц измерения ингредиентов."""
+
+    name = models.CharField(max_length=50, unique=True,
+                            verbose_name='Единица измерения',
+                            help_text='Введите единицу измерения:')
+
+    def __str__(self):
+        return self.name
+
+
 class Ingredient(models.Model):
     """Описание модели для ингредиентов."""
 
     name = models.CharField(max_length=256, unique=True,
                             verbose_name='Название ингредиента',
                             help_text='Введите название:')
-    measurement_unit = models.CharField(max_length=5, unique=True,
-                                        verbose_name='Единица измерения',
-                                        help_text='Введите единицу измерения:')
+    measurement_unit = models.ManyToManyField(MeasurementUnit,
+                                 related_name='ingredients',
+                                 verbose_name='Единицы измерения')
 
     def __str__(self):
         return self.name

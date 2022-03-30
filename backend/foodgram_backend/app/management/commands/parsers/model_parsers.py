@@ -2,7 +2,8 @@ import csv
 import os
 
 from django.conf import settings
-from app.models import Ingredient
+from django.shortcuts import get_object_or_404
+from app.models import Ingredient, MeasurementUnit
 
 
 def csv_parser(file):
@@ -19,11 +20,12 @@ def csv_parser(file):
 def ingredient_parser(file):
     """Парсер для модели ингредиентов."""
     rows = csv_parser(file)
-    objs = [
-        Ingredient(
-            name=row[0],
-            measurement_unit=row[1],
-        )
-        for row in rows
-    ]
-    Ingredient.objects.bulk_create(objs)
+    units = set([row[1] for row in rows])
+    objs = [MeasurementUnit(name=unit) for unit in units]
+    MeasurementUnit.objects.bulk_create(objs)
+    for row in rows:
+        measurement_unit = get_object_or_404(MeasurementUnit, name=row[1])
+        obj, created = Ingredient.objects.get_or_create(name=row[0])
+        print(row[0])
+        obj.measurement_unit.add(measurement_unit)
+        obj.save()

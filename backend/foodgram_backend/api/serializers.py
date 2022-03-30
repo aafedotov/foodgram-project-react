@@ -1,12 +1,13 @@
 from rest_framework import serializers
 
 from django.contrib.auth import get_user_model
-
+from app.models import Tag, Ingredient, MeasurementUnit, IngredientUnit
 User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для кастомной модели пользователя."""
+
     password = serializers.CharField(write_only=True)
 
     def create(self, validated_data):
@@ -40,7 +41,52 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     """Сериализатор для эндпоинта смены пароля пользователя."""
+
     model = User
 
     current_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+
+class TagSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели тегов."""
+
+    class Meta:
+        fields = ('__all__')
+        model = Tag
+
+
+class MeasurementUnitSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели тегов."""
+
+    class Meta:
+        fields = ('name',)
+        model = MeasurementUnit
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели тегов."""
+
+    name = serializers.CharField()
+
+    class Meta:
+        fields = ('name',)
+        model = Ingredient
+
+
+class IngredientUnitSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели тегов."""
+
+    name = serializers.SerializerMethodField('ingredient')
+    measurement_unit = serializers.SerializerMethodField('unit')
+
+
+    def unit(self, obj):
+        return obj.measurement_unit.name
+
+    def ingredient(self, obj):
+        return obj.name.name
+
+    class Meta:
+        fields = ('__all__')
+        model = IngredientUnit

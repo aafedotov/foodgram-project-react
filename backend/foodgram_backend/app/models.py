@@ -8,10 +8,12 @@ class MeasurementUnit(models.Model):
 
     name = models.CharField(max_length=50, unique=True,
                             verbose_name='Единица измерения',
-                            help_text='Введите единицу измерения:')
+                            help_text='Введите единицу измерения')
 
     def __str__(self):
         return self.name
+
+
 
 
 class Ingredient(models.Model):
@@ -19,13 +21,23 @@ class Ingredient(models.Model):
 
     name = models.CharField(max_length=256, unique=True,
                             verbose_name='Название ингредиента',
-                            help_text='Введите название:')
+                            help_text='Введите название')
     measurement_unit = models.ManyToManyField(MeasurementUnit,
+                                 through='IngredientUnit',
                                  related_name='ingredients',
                                  verbose_name='Единицы измерения')
 
     def __str__(self):
         return self.name
+
+
+class IngredientUnit(models.Model):
+    """Промежуточная таблица ингредиентов и единиц измерения."""
+
+    name = models.ForeignKey(Ingredient,
+                             on_delete=models.CASCADE)
+    measurement_unit = models.ForeignKey(MeasurementUnit,
+                             on_delete=models.CASCADE)
 
 
 class Subscription(models.Model):
@@ -58,10 +70,10 @@ class Tag(models.Model):
 
     name = models.CharField(max_length=256, unique=True,
                             verbose_name='Имя тега',
-                            help_text='Введите имя тега:')
+                            help_text='Введите имя тега')
     slug = models.SlugField(max_length=50, unique=True, verbose_name='Slug')
     color = models.CharField(max_length=7, unique=True,
-                             verbose_name='Цвет', help_text='HEX-код:')
+                             verbose_name='Цвет', help_text='HEX-код')
 
     def __str__(self):
         return self.name
@@ -73,7 +85,7 @@ class Recipe(models.Model):
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE,
                                related_name='recipes', verbose_name='Автор')
     name = models.CharField(max_length=200, verbose_name='Название рецепта',
-                            help_text='Введите название рецепта:')
+                            help_text='Введите название рецепта')
     text = models.TextField(verbose_name='Описание рецепта')
     image = models.ImageField(upload_to='recipes/images/',
                               verbose_name='Изображение')

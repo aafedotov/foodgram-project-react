@@ -2,13 +2,18 @@ from django.urls import include, re_path, path
 
 from rest_framework.routers import DefaultRouter
 
-from .views import CustomUserViewSet, UsersMeApiView, ChangePasswordView
+from .views import (
+    CustomUserViewSet, UsersMeApiView, ChangePasswordView, TagViewSet,
+    IngredientViewSet,
+)
 
 app_name = 'api'
 
 router_v1 = DefaultRouter()
 
 router_v1.register('users', CustomUserViewSet)
+router_v1.register('tags', TagViewSet)
+router_v1.register('ingredients', IngredientViewSet)
 
 urlpatterns = [
     re_path(r'^auth/', include('djoser.urls')),

@@ -4,8 +4,15 @@ from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import UserSerializer, ChangePasswordSerializer
-from .mixins import ListRetrieveCreateViewSet
+from django_filters.rest_framework import DjangoFilterBackend
+
+from .serializers import (
+    UserSerializer, ChangePasswordSerializer, TagSerializer,
+    IngredientUnitSerializer
+)
+from .mixins import ListRetrieveCreateViewSet, ListRetrieveViewSet
+from .filters import IngredientFilter
+from app.models import Tag, Ingredient, IngredientUnit
 
 
 User = get_user_model()
@@ -60,3 +67,20 @@ class ChangePasswordView(CreateAPIView):
             return Response(response)
         return Response(serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
+
+
+class TagViewSet(ListRetrieveViewSet):
+    """Представление для эндпоинта Tag."""
+
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+
+
+class IngredientViewSet(ListRetrieveViewSet):
+    """Представление для эндпоинта Tag."""
+
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('name',)
+    filterset_class = IngredientFilter
+    queryset = IngredientUnit.objects.all()
+    serializer_class = IngredientUnitSerializer

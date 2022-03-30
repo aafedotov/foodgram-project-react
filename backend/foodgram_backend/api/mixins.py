@@ -9,3 +9,11 @@ class ListRetrieveCreateViewSet(mixins.CreateModelMixin,
     """Набор представлений для модели CustomUser."""
 
     permission_classes = [permissions.AllowAny]
+
+
+class ListRetrieveViewSet(mixins.RetrieveModelMixin,
+                                mixins.ListModelMixin,
+                                viewsets.GenericViewSet):
+
+
+    permission_classes = [permissions.AllowAny]

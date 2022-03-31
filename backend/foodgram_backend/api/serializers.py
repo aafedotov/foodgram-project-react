@@ -125,3 +125,15 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('__all__')
         model = Recipe
+
+
+class RecipePostSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели рецептов, изменение."""
+
+    # tags = TagSerializer()
+    # author = UserSerializer()
+    # ingredients = RecipeIngredientSerializer()
+    #
+    # class Meta:
+    #     fields = ('__all__')
+    #     model = Recipe

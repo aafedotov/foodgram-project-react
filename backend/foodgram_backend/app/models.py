@@ -14,8 +14,6 @@ class MeasurementUnit(models.Model):
         return self.name
 
 
-
-
 class Ingredient(models.Model):
     """Описание модели для ингредиентов."""
 
@@ -94,7 +92,7 @@ class Recipe(models.Model):
                                  through='RecipeTag',
                                  verbose_name='Теги')
     cooking_time = models.IntegerField(validators=[MinValueValidator(1)])
-    ingredient = models.ManyToManyField(Ingredient,
+    ingredient = models.ManyToManyField(IngredientUnit,
                                         related_name='recipes',
                                         through='RecipeIngredient',
                                         verbose_name='Ингредиенты')
@@ -127,7 +125,7 @@ class RecipeIngredient(models.Model):
         on_delete=models.CASCADE
     )
     ingredient = models.ForeignKey(
-        Ingredient,
+        IngredientUnit,
         verbose_name='Ингредиент',
         on_delete=models.CASCADE
     )

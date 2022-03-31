@@ -1,7 +1,10 @@
 from rest_framework import serializers
 
 from django.contrib.auth import get_user_model
-from app.models import Tag, Ingredient, MeasurementUnit, IngredientUnit
+from app.models import (
+    Tag, Ingredient, MeasurementUnit, IngredientUnit, RecipeIngredient, Recipe
+)
+
 User = get_user_model()
 
 
@@ -75,18 +78,50 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class IngredientUnitSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели тегов."""
+    """Сериализатор для ингредиентов и единиц измерения."""
 
-    name = serializers.SerializerMethodField('ingredient')
-    measurement_unit = serializers.SerializerMethodField('unit')
+    name = serializers.SerializerMethodField('ingredient_name')
+    measurement_unit = serializers.SerializerMethodField('ingredient_unit')
 
-
-    def unit(self, obj):
+    def ingredient_unit(self, obj):
         return obj.measurement_unit.name
 
-    def ingredient(self, obj):
+    def ingredient_name(self, obj):
         return obj.name.name
 
     class Meta:
         fields = ('__all__')
         model = IngredientUnit
+
+
+class RecipeIngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели, связывающей ингредиенты и рецепты."""
+
+    id = serializers.SerializerMethodField('ingredient_id')
+    name = serializers.SerializerMethodField('ingredient_name')
+    measurement_unit = serializers.SerializerMethodField('ingredient_unit')
+
+    def ingredient_id(self, obj):
+        return obj.ingredient.id
+
+    def ingredient_name(self, obj):
+        return obj.ingredient.name
+
+    def ingredient_unit(self, obj):
+        return obj.ingredient.measurement_unit
+
+    class Meta:
+        fields = ('id, name, measurement_unit, amount')
+        model = RecipeIngredient
+
+
+class RecipeReadOnlySerializer(serializers.ModelSerializer):
+    """Сериализатор для модели рецептов, чтение."""
+
+    tags = TagSerializer()
+    author = UserSerializer()
+    ingredients = RecipeIngredientSerializer()
+
+    class Meta:
+        fields = ('__all__')
+        model = Recipe

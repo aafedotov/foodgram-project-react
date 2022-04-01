@@ -1,18 +1,20 @@
 from django.contrib.auth import get_user_model
-from rest_framework import permissions, status
+from django.shortcuts import get_object_or_404
+from rest_framework import permissions, status, viewsets
 from rest_framework.generics import CreateAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .serializers import (
     UserSerializer, ChangePasswordSerializer, TagSerializer,
-    IngredientUnitSerializer
+    IngredientUnitSerializer, RecipePostSerializer,
+    RecipeReadOnlySerializer
 )
 from .mixins import ListRetrieveCreateViewSet, ListRetrieveViewSet
 from .filters import IngredientFilter
-from app.models import Tag, Ingredient, IngredientUnit
+from app.models import Tag, Ingredient, IngredientUnit, Recipe
 
 
 User = get_user_model()
@@ -84,3 +86,24 @@ class IngredientViewSet(ListRetrieveViewSet):
     filterset_class = IngredientFilter
     queryset = IngredientUnit.objects.all()
     serializer_class = IngredientUnitSerializer
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    """View-set для эндпоинта title."""
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeReadOnlySerializer
+    permission_classes = [AllowAny]
+    # filter_backends = (DjangoFilterBackend,)
+    # filterset_fields = ('category', 'genre', 'year', 'name')
+    # filterset_class = TitleFilter
+
+    def get_serializer_class(self):
+        """Определяем сериализаторы в зависимости от реквест методов."""
+        if self.action == 'create' or self.action == 'partial_update':
+            return RecipePostSerializer
+        return RecipeReadOnlySerializer
+
+    def perform_create(self, serializer):
+        """Переопределяем сохранение автора рецепта."""
+        author = self.request.user
+        serializer.save(author=author)

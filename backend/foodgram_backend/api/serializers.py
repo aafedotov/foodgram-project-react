@@ -5,6 +5,9 @@ from app.models import (
     Tag, Ingredient, MeasurementUnit, IngredientUnit, RecipeIngredient, Recipe
 )
 
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework.relations import SlugRelatedField
+
 User = get_user_model()
 
 
@@ -94,7 +97,7 @@ class IngredientUnitSerializer(serializers.ModelSerializer):
         model = IngredientUnit
 
 
-class RecipeIngredientSerializer(serializers.ModelSerializer):
+class RecipeReadIngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для модели, связывающей ингредиенты и рецепты."""
 
     id = serializers.SerializerMethodField('ingredient_id')
@@ -111,16 +114,29 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
         return obj.ingredient.measurement_unit
 
     class Meta:
-        fields = ('id, name, measurement_unit, amount')
+        fields = ('id', 'name', 'measurement_unit', 'amount')
+        model = RecipeIngredient
+
+
+class RecipePostIngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели, связывающей ингредиенты и рецепты."""
+
+    id = serializers.SerializerMethodField('ingredient_id')
+
+    def ingredient_id(self, obj):
+        return obj.ingredient.id
+
+    class Meta:
+        fields = ('id', 'amount')
         model = RecipeIngredient
 
 
 class RecipeReadOnlySerializer(serializers.ModelSerializer):
     """Сериализатор для модели рецептов, чтение."""
 
-    tags = TagSerializer()
+    tags = TagSerializer(many=True)
     author = UserSerializer()
-    ingredients = RecipeIngredientSerializer()
+    ingredients = RecipeReadIngredientSerializer(many=True)
 
     class Meta:
         fields = ('__all__')
@@ -130,10 +146,24 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
 class RecipePostSerializer(serializers.ModelSerializer):
     """Сериализатор для модели рецептов, изменение."""
 
-    # tags = TagSerializer()
-    # author = UserSerializer()
-    # ingredients = RecipeIngredientSerializer()
-    #
-    # class Meta:
-    #     fields = ('__all__')
-    #     model = Recipe
+    # tags = TagSerializer(many=True)
+    image = Base64ImageField()
+    author = SlugRelatedField(slug_field='username',
+                              default=serializers.CurrentUserDefault(),
+                              read_only=True)
+    ingredients = RecipePostIngredientSerializer(many=True)
+
+    def create(self, validated_data):
+        recipe = Recipe.objects.create(
+            author=validated_data['author'],
+            name=validated_data['name'],
+            text=validated_data['text'],
+            image=validated_data['image'],
+            tag=validated_data['tag']
+        )
+
+        return user
+
+    class Meta:
+        fields = ('__all__')
+        model = Recipe

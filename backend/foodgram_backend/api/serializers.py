@@ -2,11 +2,12 @@ from rest_framework import serializers
 
 from django.contrib.auth import get_user_model
 from app.models import (
-    Tag, Ingredient, MeasurementUnit, IngredientUnit, RecipeIngredient, Recipe
+    Tag, Ingredient, MeasurementUnit, IngredientUnit, RecipeIngredient, Recipe, RecipeTag
 )
 
 from drf_extra_fields.fields import Base64ImageField
-from rest_framework.relations import SlugRelatedField
+from rest_framework.relations import SlugRelatedField, PrimaryKeyRelatedField
+
 
 User = get_user_model()
 
@@ -121,10 +122,10 @@ class RecipeReadIngredientSerializer(serializers.ModelSerializer):
 class RecipePostIngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для модели, связывающей ингредиенты и рецепты."""
 
-    id = serializers.SerializerMethodField('ingredient_id')
-
-    def ingredient_id(self, obj):
-        return obj.ingredient.id
+    id = PrimaryKeyRelatedField(queryset=IngredientUnit.objects.all())
+    #
+    # def ingredient_id(self, obj):
+    #     return obj.ingredient.id
 
     class Meta:
         fields = ('id', 'amount')
@@ -136,7 +137,7 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
 
     tags = TagSerializer(many=True)
     author = UserSerializer()
-    ingredients = RecipeReadIngredientSerializer(many=True)
+    ingredient = RecipeReadIngredientSerializer(many=True)
 
     class Meta:
         fields = ('__all__')
@@ -146,7 +147,7 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
 class RecipePostSerializer(serializers.ModelSerializer):
     """Сериализатор для модели рецептов, изменение."""
 
-    # tags = TagSerializer(many=True)
+    tags = PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
     image = Base64ImageField()
     author = SlugRelatedField(slug_field='username',
                               default=serializers.CurrentUserDefault(),
@@ -154,15 +155,29 @@ class RecipePostSerializer(serializers.ModelSerializer):
     ingredients = RecipePostIngredientSerializer(many=True)
 
     def create(self, validated_data):
-        recipe = Recipe.objects.create(
-            author=validated_data['author'],
-            name=validated_data['name'],
-            text=validated_data['text'],
-            image=validated_data['image'],
-            tag=validated_data['tag']
-        )
+        print(validated_data)
+        ingredients_data = validated_data.pop('ingredients')
+        print(ingredients_data)
+        tags_data = validated_data.pop('tags')
+        recipe = Recipe.objects.create(**validated_data)
+        for ingredient in ingredients_data:
+            RecipeIngredient.objects.create(recipe=recipe,
+                                            ingredient=ingredient['id'],
+                                            amount=ingredient['amount'])
+        for tag in tags_data:
+            RecipeTag.objects.create(recipe=recipe, tag=tag)
+        return recipe
 
-        return user
+    # def create(self, validated_data):
+    #     recipe = Recipe.objects.create(
+    #         author=validated_data['author'],
+    #         name=validated_data['name'],
+    #         text=validatßed_data['text'],
+    #         image=validated_data['image'],
+    #         tag=validated_data['tags']
+    #     )
+
+        # return recipe
 
     class Meta:
         fields = ('__all__')

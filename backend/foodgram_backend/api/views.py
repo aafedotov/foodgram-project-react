@@ -6,6 +6,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.pagination import PageNumberPagination
+
 
 from .serializers import (
     UserSerializer, ChangePasswordSerializer, TagSerializer,
@@ -90,6 +92,7 @@ class IngredientViewSet(ListRetrieveViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """View-set для эндпоинта title."""
+    pagination_class = PageNumberPagination
     queryset = Recipe.objects.all()
     serializer_class = RecipeReadOnlySerializer
     permission_classes = [AllowAny]

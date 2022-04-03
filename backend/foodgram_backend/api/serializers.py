@@ -63,6 +63,15 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
 
 
+class RecipeTagSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели тегов-рецептов."""
+
+    # tag = TagSerializer(many=True)
+    class Meta:
+        fields = ('__all__')
+        model = RecipeTag
+
+
 class MeasurementUnitSerializer(serializers.ModelSerializer):
     """Сериализатор для модели тегов."""
 
@@ -101,21 +110,22 @@ class IngredientUnitSerializer(serializers.ModelSerializer):
 class RecipeReadIngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для модели, связывающей ингредиенты и рецепты."""
 
+
     id = serializers.SerializerMethodField('ingredient_id')
     name = serializers.SerializerMethodField('ingredient_name')
     measurement_unit = serializers.SerializerMethodField('ingredient_unit')
-
+    #
     def ingredient_id(self, obj):
         return obj.ingredient.id
-
+    #
     def ingredient_name(self, obj):
-        return obj.ingredient.name
-
+        return obj.ingredient.name.name
+    #
     def ingredient_unit(self, obj):
-        return obj.ingredient.measurement_unit
+        return obj.ingredient.measurement_unit.name
 
     class Meta:
-        fields = ('id', 'name', 'measurement_unit', 'amount')
+        fields = ('id', 'amount', 'name', 'measurement_unit')
         model = RecipeIngredient
 
 
@@ -135,9 +145,9 @@ class RecipePostIngredientSerializer(serializers.ModelSerializer):
 class RecipeReadOnlySerializer(serializers.ModelSerializer):
     """Сериализатор для модели рецептов, чтение."""
 
-    tags = TagSerializer(many=True)
-    author = UserSerializer()
-    ingredient = RecipeReadIngredientSerializer(many=True)
+    tags = TagSerializer(many=True, read_only=True, source='tag')
+    # author = UserSerializer()
+    ingredients = RecipeReadIngredientSerializer(many=True, read_only=True, source='ingredient')
 
     class Meta:
         fields = ('__all__')
@@ -152,33 +162,23 @@ class RecipePostSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username',
                               default=serializers.CurrentUserDefault(),
                               read_only=True)
-    ingredients = RecipePostIngredientSerializer(many=True)
+    ingredients = RecipePostIngredientSerializer(many=True, source='ingredient')
 
     def create(self, validated_data):
         print(validated_data)
-        ingredients_data = validated_data.pop('ingredients')
+        ingredients_data = validated_data.pop('ingredient')
         print(ingredients_data)
         tags_data = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         for ingredient in ingredients_data:
-            RecipeIngredient.objects.create(recipe=recipe,
+            ing = RecipeIngredient.objects.create(
                                             ingredient=ingredient['id'],
                                             amount=ingredient['amount'])
+            recipe.ingredient.add(ing)
         for tag in tags_data:
             RecipeTag.objects.create(recipe=recipe, tag=tag)
         return recipe
 
-    # def create(self, validated_data):
-    #     recipe = Recipe.objects.create(
-    #         author=validated_data['author'],
-    #         name=validated_data['name'],
-    #         text=validatßed_data['text'],
-    #         image=validated_data['image'],
-    #         tag=validated_data['tags']
-    #     )
-
-        # return recipe
-
     class Meta:
-        fields = ('__all__')
+        fields = ('ingredients', 'tags', 'image', 'author', 'text', 'cooking_time', 'name')
         model = Recipe

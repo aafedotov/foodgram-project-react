@@ -77,6 +77,30 @@ class Tag(models.Model):
         return self.name
 
 
+
+
+
+
+class RecipeIngredient(models.Model):
+    """Промежуточная таблица для связи рецептов и ингредиентов."""
+
+    ingredient = models.ForeignKey(
+        IngredientUnit,
+        verbose_name='Ингредиент',
+        on_delete=models.CASCADE
+    )
+    amount = models.IntegerField(validators=[MinValueValidator(1)],
+                                 verbose_name='Количество')
+
+    # class Meta:
+    #     constraints = [
+    #         models.UniqueConstraint(
+    #             fields=['recipe', 'ingredient'],
+    #             name='unique_ingredient_in_recipe'
+    #         )
+    #     ]
+
+
 class Recipe(models.Model):
     """Описание модели для рецептов."""
 
@@ -92,13 +116,15 @@ class Recipe(models.Model):
                                  through='RecipeTag',
                                  verbose_name='Теги')
     cooking_time = models.IntegerField(validators=[MinValueValidator(1)])
-    ingredient = models.ManyToManyField(IngredientUnit,
+    ingredient = models.ManyToManyField(RecipeIngredient,
                                         related_name='recipes',
-                                        through='RecipeIngredient',
                                         verbose_name='Ингредиенты')
 
     def __str__(self):
         return self.name
+
+
+
 
 
 class RecipeTag(models.Model):
@@ -117,27 +143,4 @@ class RecipeTag(models.Model):
     )
 
 
-class RecipeIngredient(models.Model):
-    """Промежуточная таблица для связи рецептов и ингредиентов."""
 
-    recipe = models.ForeignKey(
-        Recipe,
-        verbose_name='Рецепт',
-        on_delete=models.CASCADE,
-        related_name='ingredients'
-    )
-    ingredient = models.ForeignKey(
-        IngredientUnit,
-        verbose_name='Ингредиент',
-        on_delete=models.CASCADE
-    )
-    amount = models.IntegerField(validators=[MinValueValidator(1)],
-                                 verbose_name='Количество')
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['recipe', 'ingredient'],
-                name='unique_ingredient_in_recipe'
-            )
-        ]

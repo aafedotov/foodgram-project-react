@@ -77,10 +77,6 @@ class Tag(models.Model):
         return self.name
 
 
-
-
-
-
 class RecipeIngredient(models.Model):
     """Промежуточная таблица для связи рецептов и ингредиентов."""
 
@@ -91,14 +87,6 @@ class RecipeIngredient(models.Model):
     )
     amount = models.IntegerField(validators=[MinValueValidator(1)],
                                  verbose_name='Количество')
-
-    # class Meta:
-    #     constraints = [
-    #         models.UniqueConstraint(
-    #             fields=['recipe', 'ingredient'],
-    #             name='unique_ingredient_in_recipe'
-    #         )
-    #     ]
 
 
 class Recipe(models.Model):
@@ -124,9 +112,6 @@ class Recipe(models.Model):
         return self.name
 
 
-
-
-
 class RecipeTag(models.Model):
     """Промежуточная таблица для связи рецептов с тегами."""
 
@@ -141,6 +126,3 @@ class RecipeTag(models.Model):
         verbose_name='Тег',
         on_delete=models.CASCADE
     )
-
-
-

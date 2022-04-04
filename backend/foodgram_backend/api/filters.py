@@ -1,7 +1,7 @@
 import django_filters
 from django_filters import rest_framework as filters
 
-from app.models import IngredientUnit
+from app.models import IngredientUnit, Recipe
 
 
 class IngredientFilter(filters.FilterSet):
@@ -15,3 +15,15 @@ class IngredientFilter(filters.FilterSet):
     class Meta:
         model = IngredientUnit
         fields = ('name',)
+
+
+class RecipeFilter(filters.FilterSet):
+    """Кастомный фильтр для модели Recipe."""
+
+    tags = django_filters.AllValuesMultipleFilter(
+        field_name='tag__slug'
+    )
+
+    class Meta:
+        model = Recipe
+        fields = ('tag',)

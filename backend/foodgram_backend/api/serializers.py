@@ -110,17 +110,16 @@ class IngredientUnitSerializer(serializers.ModelSerializer):
 class RecipeReadIngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для модели, связывающей ингредиенты и рецепты."""
 
-
     id = serializers.SerializerMethodField('ingredient_id')
     name = serializers.SerializerMethodField('ingredient_name')
     measurement_unit = serializers.SerializerMethodField('ingredient_unit')
-    #
+
     def ingredient_id(self, obj):
         return obj.ingredient.id
-    #
+
     def ingredient_name(self, obj):
         return obj.ingredient.name.name
-    #
+
     def ingredient_unit(self, obj):
         return obj.ingredient.measurement_unit.name
 
@@ -146,11 +145,16 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
     """Сериализатор для модели рецептов, чтение."""
 
     tags = TagSerializer(many=True, read_only=True, source='tag')
-    # author = UserSerializer()
+    author = UserSerializer()
     ingredients = RecipeReadIngredientSerializer(many=True, read_only=True, source='ingredient')
+    image = serializers.SerializerMethodField('image_url')
+
+    def image_url(self, obj):
+         return '/media/' + str(obj.image)
 
     class Meta:
-        fields = ('__all__')
+        fields = ('tags', 'author', 'ingredients', 'name', 'text', 'image',
+                  'cooking_time', 'id')
         model = Recipe
 
 
@@ -165,9 +169,7 @@ class RecipePostSerializer(serializers.ModelSerializer):
     ingredients = RecipePostIngredientSerializer(many=True, source='ingredient')
 
     def create(self, validated_data):
-        print(validated_data)
         ingredients_data = validated_data.pop('ingredient')
-        print(ingredients_data)
         tags_data = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         for ingredient in ingredients_data:

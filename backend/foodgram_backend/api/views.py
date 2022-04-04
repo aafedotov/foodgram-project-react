@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, status, viewsets, filters
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
@@ -15,7 +14,7 @@ from .serializers import (
     RecipeReadOnlySerializer
 )
 from .mixins import ListRetrieveCreateViewSet, ListRetrieveViewSet
-from .filters import IngredientFilter
+from .filters import IngredientFilter, RecipeFilter
 from app.models import Tag, Ingredient, IngredientUnit, Recipe
 
 
@@ -92,13 +91,14 @@ class IngredientViewSet(ListRetrieveViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """View-set для эндпоинта title."""
+
     pagination_class = PageNumberPagination
     queryset = Recipe.objects.all()
     serializer_class = RecipeReadOnlySerializer
     permission_classes = [AllowAny]
-    # filter_backends = (DjangoFilterBackend,)
-    # filterset_fields = ('category', 'genre', 'year', 'name')
-    # filterset_class = TitleFilter
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('tags', 'author',)
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         """Определяем сериализаторы в зависимости от реквест методов."""

@@ -17,6 +17,15 @@ class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для кастомной модели пользователя."""
 
     password = serializers.CharField(write_only=True)
+    is_subscribed = serializers.SerializerMethodField('subscribed_check')
+
+    def subscribed_check(self, obj):
+        request = self.context.get('request', None)
+        if request:
+            user = request.user
+            if isinstance(user, User):
+                return Subscription.objects.filter(user=user, following=obj).exists()
+        return False
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -36,6 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
                   'email',
                   'first_name',
                   'last_name',
+                  'is_subscribed'
                   ]
 
         extra_kwargs = {'username': {'required': True},
@@ -187,28 +197,41 @@ class RecipePostSerializer(serializers.ModelSerializer):
         model = Recipe
 
 
-class SubscriptionPostSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели Subscription."""
+class SubscribeRecipeSerializer(serializers.ModelSerializer):
 
-    # user = serializers.PrimaryKeyRelatedField(read_only=True)
-    #
-    # following = serializers.PrimaryKeyRelatedField(read_only=True)
+    image = serializers.SerializerMethodField('image_url')
 
-    def validate_following(self, value):
-        """Проверяем, что не подписываемся на самого себя."""
-        if self.context['request'].user == value:
-            raise serializers.ValidationError(
-                'Нельзя подписываться на самого себя!'
-            )
-        return value
+    def image_url(self, obj):
+         return '/media/' + str(obj.image)
 
     class Meta:
-        model = Subscription
-        fields = ('user', 'following')
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Subscription.objects.all(),
-                fields=['user', 'following'],
-                message='Не уникальная подписка!'
-            )
-        ]
+
+        fields = ('id', 'name', 'image', 'cooking_time')
+        model = Recipe
+
+
+class SubscribeListSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписок."""
+
+    recipes = SubscribeRecipeSerializer(many=True)
+    recipes_count = serializers.SerializerMethodField('count_recipes')
+
+    # def recipes_list(self, obj):
+    #     return SubscribeRecipeSerializer(obj.recipes.all())
+
+    def count_recipes(self, obj):
+        return obj.recipes.all().count()
+
+
+    class Meta:
+
+        fields = ['id',
+                  'username',
+                  'email',
+                  'first_name',
+                  'last_name',
+                  'recipes',
+                  'recipes_count'
+                  ]
+        model = User
+

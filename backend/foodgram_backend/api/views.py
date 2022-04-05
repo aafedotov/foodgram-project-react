@@ -12,9 +12,11 @@ from rest_framework.pagination import PageNumberPagination
 from .serializers import (
     UserSerializer, ChangePasswordSerializer, TagSerializer,
     IngredientUnitSerializer, RecipePostSerializer,
-    RecipeReadOnlySerializer, SubscriptionPostSerializer
+    RecipeReadOnlySerializer, SubscribeListSerializer
 )
-from .mixins import ListRetrieveCreateViewSet, ListRetrieveViewSet
+from .mixins import (
+    ListRetrieveCreateViewSet, ListRetrieveViewSet, ListViewSet
+)
 from .filters import IngredientFilter, RecipeFilter
 from app.models import (
     Tag, Ingredient, IngredientUnit, Recipe, Subscription
@@ -138,28 +140,16 @@ class SubscribePostDestroyView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# class SubscriptionViewset(viewsets.ModelViewSet):
-#     """Viewset для модели Subscription."""
-#     serializer_class = SubscriptionPostSerializer
-#     permission_classes = [IsAuthenticated]
-#     # filter_backends = (filters.SearchFilter,)
-#     # search_fields = ('following__username', 'user__username')
-#
-#     def get_queryset(self):
-#
-#         user = self.request.user
-#         queryset = user.follows.all()
-#         return queryset
-#
-#     def perform_create(self, serializer):
-#         """Подписка."""
-#
-#         author = get_object_or_404(User, id=self.kwargs["id"])
-#         serializer.save(user=self.request.user, following=author)
-#
-#     def perform_destroy(self, serializer):
-#         """Отписка."""
-#
-#         author = get_object_or_404(User, id=self.kwargs["id"])
-#         subscription = Subscription(user=self.request.user, following=author)
-#         subscription.delete()
+class SubscribeListViewSet(ListViewSet):
+    """Вьюсет для списка подписок."""
+
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAuthenticated]
+    serializer_class = SubscribeListSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        subs = user.follows.all().values_list('user__id', flat=True)
+        queryset = User.objects.filter(id__in=subs)
+        print(queryset)
+        return queryset

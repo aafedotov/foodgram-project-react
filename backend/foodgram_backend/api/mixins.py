@@ -17,3 +17,8 @@ class ListRetrieveViewSet(mixins.RetrieveModelMixin,
 
 
     permission_classes = [permissions.AllowAny]
+
+
+class ListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+
+    pass

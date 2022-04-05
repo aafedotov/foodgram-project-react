@@ -2,12 +2,13 @@ from rest_framework import serializers
 
 from django.contrib.auth import get_user_model
 from app.models import (
-    Tag, Ingredient, MeasurementUnit, IngredientUnit, RecipeIngredient, Recipe, RecipeTag
+    Tag, Ingredient, MeasurementUnit, IngredientUnit, RecipeIngredient,
+    Recipe, RecipeTag, Subscription
 )
 
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.relations import SlugRelatedField, PrimaryKeyRelatedField
-
+from rest_framework.validators import UniqueTogetherValidator
 
 User = get_user_model()
 
@@ -184,3 +185,30 @@ class RecipePostSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('ingredients', 'tags', 'image', 'author', 'text', 'cooking_time', 'name')
         model = Recipe
+
+
+class SubscriptionPostSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Subscription."""
+
+    # user = serializers.PrimaryKeyRelatedField(read_only=True)
+    #
+    # following = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    def validate_following(self, value):
+        """Проверяем, что не подписываемся на самого себя."""
+        if self.context['request'].user == value:
+            raise serializers.ValidationError(
+                'Нельзя подписываться на самого себя!'
+            )
+        return value
+
+    class Meta:
+        model = Subscription
+        fields = ('user', 'following')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Subscription.objects.all(),
+                fields=['user', 'following'],
+                message='Не уникальная подписка!'
+            )
+        ]

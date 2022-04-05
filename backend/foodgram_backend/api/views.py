@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets, filters
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -11,11 +12,13 @@ from rest_framework.pagination import PageNumberPagination
 from .serializers import (
     UserSerializer, ChangePasswordSerializer, TagSerializer,
     IngredientUnitSerializer, RecipePostSerializer,
-    RecipeReadOnlySerializer
+    RecipeReadOnlySerializer, SubscriptionPostSerializer
 )
 from .mixins import ListRetrieveCreateViewSet, ListRetrieveViewSet
 from .filters import IngredientFilter, RecipeFilter
-from app.models import Tag, Ingredient, IngredientUnit, Recipe
+from app.models import (
+    Tag, Ingredient, IngredientUnit, Recipe, Subscription
+)
 
 
 User = get_user_model()
@@ -102,7 +105,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Определяем сериализаторы в зависимости от реквест методов."""
-        if self.action == 'create' or self.action == 'partial_update':
+        if self.action in ('create', 'partial_update'):
             return RecipePostSerializer
         return RecipeReadOnlySerializer
 
@@ -110,3 +113,53 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Переопределяем сохранение автора рецепта."""
         author = self.request.user
         serializer.save(author=author)
+
+
+class SubscribePostDestroyView(APIView):
+
+    def post(self, request, **kwargs):
+        author = get_object_or_404(User, id=self.kwargs["id"])
+        user = self.request.user
+        if author == user:
+            return Response('Нельзя подписываться на самого себя!', status=status.HTTP_400_BAD_REQUEST)
+        subscription, created = Subscription.objects.get_or_create(
+            user=user,
+            following=author
+        )
+        if not created:
+            return Response('Вы уже подписаны на данного автора!', status=status.HTTP_400_BAD_REQUEST)
+        subscription.save()
+        return Response(status=status.HTTP_201_CREATED)
+
+    def delete(self, requets, **kwargs):
+        author = get_object_or_404(User, id=self.kwargs["id"])
+        subscription = get_object_or_404(Subscription, user=self.request.user, following=author)
+        subscription.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# class SubscriptionViewset(viewsets.ModelViewSet):
+#     """Viewset для модели Subscription."""
+#     serializer_class = SubscriptionPostSerializer
+#     permission_classes = [IsAuthenticated]
+#     # filter_backends = (filters.SearchFilter,)
+#     # search_fields = ('following__username', 'user__username')
+#
+#     def get_queryset(self):
+#
+#         user = self.request.user
+#         queryset = user.follows.all()
+#         return queryset
+#
+#     def perform_create(self, serializer):
+#         """Подписка."""
+#
+#         author = get_object_or_404(User, id=self.kwargs["id"])
+#         serializer.save(user=self.request.user, following=author)
+#
+#     def perform_destroy(self, serializer):
+#         """Отписка."""
+#
+#         author = get_object_or_404(User, id=self.kwargs["id"])
+#         subscription = Subscription(user=self.request.user, following=author)
+#         subscription.delete()

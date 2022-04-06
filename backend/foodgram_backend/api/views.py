@@ -12,18 +12,24 @@ from rest_framework.pagination import PageNumberPagination
 from .serializers import (
     UserSerializer, ChangePasswordSerializer, TagSerializer,
     IngredientUnitSerializer, RecipePostSerializer,
-    RecipeReadOnlySerializer, SubscribeListSerializer
+    RecipeReadOnlySerializer, SubscribeListSerializer,
+    SubscribeRecipeSerializer
 )
 from .mixins import (
     ListRetrieveCreateViewSet, ListRetrieveViewSet, ListViewSet
 )
 from .filters import IngredientFilter, RecipeFilter
 from app.models import (
-    Tag, Ingredient, IngredientUnit, Recipe, Subscription
+    Tag, Ingredient, IngredientUnit, Recipe, Subscription, RecipeFavorite
 )
 
 
 User = get_user_model()
+
+
+class CustomSetPagination(PageNumberPagination):
+
+    page_size_query_param = 'limit'
 
 
 class CustomUserViewSet(ListRetrieveCreateViewSet):
@@ -97,7 +103,7 @@ class IngredientViewSet(ListRetrieveViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     """View-set для эндпоинта title."""
 
-    pagination_class = PageNumberPagination
+    pagination_class = CustomSetPagination
     queryset = Recipe.objects.all()
     serializer_class = RecipeReadOnlySerializer
     permission_classes = [AllowAny]
@@ -131,7 +137,8 @@ class SubscribePostDestroyView(APIView):
         if not created:
             return Response('Вы уже подписаны на данного автора!', status=status.HTTP_400_BAD_REQUEST)
         subscription.save()
-        return Response(status=status.HTTP_201_CREATED)
+        serializer = SubscribeListSerializer(author)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, requets, **kwargs):
         author = get_object_or_404(User, id=self.kwargs["id"])
@@ -143,13 +150,46 @@ class SubscribePostDestroyView(APIView):
 class SubscribeListViewSet(ListViewSet):
     """Вьюсет для списка подписок."""
 
-    pagination_class = PageNumberPagination
+    pagination_class = CustomSetPagination
     permission_classes = [IsAuthenticated]
     serializer_class = SubscribeListSerializer
 
     def get_queryset(self):
         user = self.request.user
-        subs = user.follows.all().values_list('user__id', flat=True)
+        subs = user.follower.all().values_list('following__id', flat=True)
         queryset = User.objects.filter(id__in=subs)
-        print(queryset)
         return queryset
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        recipes_limit = self.request.query_params.get('recipes_limit')
+        if recipes_limit and recipes_limit.isnumeric():
+            context['recipes_limit'] = int(
+                self.request.query_params.get('recipes_limit'))
+        return context
+
+
+class FavoritePostDestroyView(APIView):
+    """Представление для добавления и удаления из избранного."""
+
+    def post(self, request, **kwargs):
+        recipe = get_object_or_404(Recipe, id=self.kwargs["id"])
+        user = self.request.user
+        favorite, created = RecipeFavorite.objects.get_or_create(
+            user=user,
+            recipe=recipe
+        )
+        if not created:
+            return Response('Данный рецепт уже в избранном!',
+                            status=status.HTTP_400_BAD_REQUEST
+                            )
+        favorite.save()
+        serializer = SubscribeRecipeSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, requets, **kwargs):
+        recipe = get_object_or_404(Recipe, id=self.kwargs["id"])
+        favorite = get_object_or_404(RecipeFavorite, user=self.request.user,
+                                     recipe=recipe)
+        favorite.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from app.models import (
     Tag, Ingredient, MeasurementUnit, IngredientUnit, RecipeIngredient,
-    Recipe, RecipeTag, Subscription
+    Recipe, RecipeTag, Subscription, RecipeFavorite
 )
 
 from drf_extra_fields.fields import Base64ImageField
@@ -159,13 +159,22 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
     author = UserSerializer()
     ingredients = RecipeReadIngredientSerializer(many=True, read_only=True, source='ingredient')
     image = serializers.SerializerMethodField('image_url')
+    is_favorited = serializers.SerializerMethodField('favorited_check')
+
+    def favorited_check(self, obj):
+        request = self.context.get('request', None)
+        if request:
+            user = request.user
+            if isinstance(user, User):
+                return RecipeFavorite.objects.filter(user=user, recipe=obj).exists()
+        return False
 
     def image_url(self, obj):
          return '/media/' + str(obj.image)
 
     class Meta:
         fields = ('tags', 'author', 'ingredients', 'name', 'text', 'image',
-                  'cooking_time', 'id')
+                  'cooking_time', 'id', 'is_favorited')
         model = Recipe
 
 
@@ -213,15 +222,24 @@ class SubscribeRecipeSerializer(serializers.ModelSerializer):
 class SubscribeListSerializer(serializers.ModelSerializer):
     """Сериализатор для подписок."""
 
-    recipes = SubscribeRecipeSerializer(many=True)
+    recipes = serializers.SerializerMethodField('get_recipes')
     recipes_count = serializers.SerializerMethodField('count_recipes')
+    is_subscribed = serializers.SerializerMethodField('subscribed_check')
 
-    # def recipes_list(self, obj):
-    #     return SubscribeRecipeSerializer(obj.recipes.all())
+    def get_recipes(self, obj):
+        recipes_limit = self.context.get('recipes_limit')
+        if recipes_limit:
+            queryset = obj.recipes.all()[:recipes_limit]
+        else:
+            queryset = obj.recipes.all()
+        serializer = SubscribeRecipeSerializer(queryset, many=True)
+        return serializer.data
+
+    def subscribed_check(self, obj):
+        return True
 
     def count_recipes(self, obj):
         return obj.recipes.all().count()
-
 
     class Meta:
 
@@ -231,7 +249,8 @@ class SubscribeListSerializer(serializers.ModelSerializer):
                   'first_name',
                   'last_name',
                   'recipes',
-                  'recipes_count'
+                  'recipes_count',
+                  'is_subscribed'
                   ]
         model = User
 

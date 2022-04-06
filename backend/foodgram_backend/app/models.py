@@ -1,6 +1,7 @@
 from users.models import CustomUser
 from django.db import models
 from django.core.validators import MinValueValidator
+from datetime import datetime
 
 
 class MeasurementUnit(models.Model):
@@ -94,6 +95,7 @@ class Recipe(models.Model):
 
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE,
                                related_name='recipes', verbose_name='Автор')
+    pub_date = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=200, verbose_name='Название рецепта',
                             help_text='Введите название рецепта')
     text = models.TextField(verbose_name='Описание рецепта')
@@ -107,6 +109,9 @@ class Recipe(models.Model):
     ingredient = models.ManyToManyField(RecipeIngredient,
                                         related_name='recipes',
                                         verbose_name='Ингредиенты')
+
+    class Meta:
+        ordering = ['-pub_date']
 
     def __str__(self):
         return self.name
@@ -126,3 +131,17 @@ class RecipeTag(models.Model):
         verbose_name='Тег',
         on_delete=models.CASCADE
     )
+
+
+class RecipeFavorite(models.Model):
+    """Таблица для любимых рецептов."""
+
+    recipe = models.ForeignKey(
+        Recipe,
+        verbose_name='Рецепт',
+        on_delete=models.CASCADE,
+        related_name='recipes'
+    )
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE,
+                      related_name='users', verbose_name='Автор')

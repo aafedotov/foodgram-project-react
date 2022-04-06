@@ -23,6 +23,11 @@ class RecipeFilter(filters.FilterSet):
     tags = django_filters.AllValuesMultipleFilter(
         field_name='tag__slug'
     )
+    author = django_filters.AllValuesFilter(
+        field_name='author__id'
+    )
+    is_favorited = django_filters.BooleanFilter()
+
 
     class Meta:
         model = Recipe

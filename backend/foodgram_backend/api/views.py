@@ -103,7 +103,7 @@ class IngredientViewSet(ListRetrieveViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    """View-set для эндпоинта title."""
+    """View-set для эндпоинта Рецептов."""
 
     pagination_class = CustomSetPagination
     queryset = Recipe.objects.all()

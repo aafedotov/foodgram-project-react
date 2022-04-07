@@ -77,7 +77,6 @@ class TagSerializer(serializers.ModelSerializer):
 class RecipeTagSerializer(serializers.ModelSerializer):
     """Сериализатор для модели тегов-рецептов."""
 
-    # tag = TagSerializer(many=True)
     class Meta:
         fields = ('__all__')
         model = RecipeTag
@@ -211,9 +210,11 @@ class RecipePostSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop('ingredient')
         tags_data = validated_data.pop('tags')
         recipe = instance
+        author = recipe.author
         recipe.ingredient.select_related().all().delete()
         RecipeTag.objects.filter(recipe=recipe).delete()
-        Recipe.objects.filter(id=recipe.id).update(**validated_data)
+        Recipe.objects.filter(id=recipe.id).delete()
+        recipe = Recipe.objects.create(**validated_data, author=author)
         for ingredient in ingredients_data:
             ing = RecipeIngredient.objects.create(
                 ingredient=ingredient['id'],

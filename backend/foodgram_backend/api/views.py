@@ -1,3 +1,5 @@
+import io
+
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets, filters
@@ -7,8 +9,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
+from django.http import FileResponse
+from reportlab.pdfgen import canvas
 
-
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from .serializers import (
     UserSerializer, ChangePasswordSerializer, TagSerializer,
     IngredientUnitSerializer, RecipePostSerializer,
@@ -20,7 +25,8 @@ from .mixins import (
 )
 from .filters import IngredientFilter, RecipeFilter
 from app.models import (
-    Tag, Ingredient, IngredientUnit, Recipe, Subscription, RecipeFavorite
+    Tag, Ingredient, IngredientUnit, Recipe, Subscription, RecipeFavorite,
+    RecipeCart, RecipeIngredient
 )
 
 
@@ -36,10 +42,6 @@ class CustomUserViewSet(ListRetrieveCreateViewSet):
     """View-set для эндпоинта users."""
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    # pagination_class = PageNumberPagination
-    # filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    # search_fields = ('username',)
-    # lookup_field = 'username'
 
 
 class UsersMeApiView(APIView):
@@ -122,6 +124,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
         author = self.request.user
         serializer.save(author=author)
 
+    def get_queryset(self):
+        if self.request.query_params.get('is_favorited') == '1':
+            user = self.request.user
+            favorites = RecipeFavorite.objects.filter(user=user).values_list('recipe__id', flat=True)
+            queryset = Recipe.objects.filter(id__in=favorites)
+            return queryset
+        if self.request.query_params.get('is_in_shopping_cart') == '1':
+            user = self.request.user
+            in_cart = RecipeCart.objects.filter(user=user).values_list('recipe__id', flat=True)
+            queryset = Recipe.objects.filter(id__in=in_cart)
+            return queryset
+        return Recipe.objects.all()
+
 
 class SubscribePostDestroyView(APIView):
 
@@ -193,3 +208,75 @@ class FavoritePostDestroyView(APIView):
                                      recipe=recipe)
         favorite.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CartPostDestroyView(APIView):
+    """Представление для добавления и удаления из корзины."""
+
+    def post(self, request, **kwargs):
+        recipe = get_object_or_404(Recipe, id=self.kwargs["id"])
+        user = self.request.user
+        cart, created = RecipeCart.objects.get_or_create(
+            user=user,
+            recipe=recipe
+        )
+        if not created:
+            return Response('Данный рецепт уже в корзине!',
+                            status=status.HTTP_400_BAD_REQUEST
+                            )
+        cart.save()
+        serializer = SubscribeRecipeSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, requets, **kwargs):
+        recipe = get_object_or_404(Recipe, id=self.kwargs["id"])
+        cart = get_object_or_404(RecipeCart, user=self.request.user,
+                                     recipe=recipe)
+        cart.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CartDownloadView(APIView):
+
+
+    def get(self, request, **kwargs):
+
+        buffer = io.BytesIO()
+
+        p = canvas.Canvas(buffer)
+        line = 800
+        pdfmetrics.registerFont(TTFont('FreeSans', 'FreeSans.ttf'))
+        p.setFont('FreeSans', 16)
+        p.drawString(15, line, "Список покупок для выбранных рецептов:")
+        p.setFont('FreeSans', 12)
+        line -= 50
+        user = self.request.user
+        in_cart = RecipeCart.objects.filter(user=user).values_list(
+            'recipe__id', flat=True)
+        queryset = Recipe.objects.filter(id__in=in_cart)
+        ingredients_dict = {}
+        for recipe in queryset:
+            ingredients = recipe.ingredient.all()
+            for ingredient in ingredients:
+                key = f'{str(ingredient.ingredient.name)}'
+                key += f' ({str(ingredient.ingredient.measurement_unit.name)})'
+                to_dict = ingredients_dict.get(key)
+                if to_dict:
+                    ingredients_dict[key] += ingredient.amount
+                else:
+                    ingredients_dict[key] = ingredient.amount
+        for ingredient, amount in ingredients_dict.items():
+            line -= 10
+            to_print = f'{ingredient} - {amount}'
+            p.drawString(15, line, to_print.capitalize())
+        line -= 55
+        p.setFont('FreeSans', 14)
+        p.drawString(15, line, 'Список сгенерирован сервисом Продуктовый Помощник.')
+        line -= 20
+        p.setFont('FreeSans', 12)
+        p.drawString(15, line, 'Автор: Андрей Федотов.')
+        p.showPage()
+        p.save()
+
+        buffer.seek(0)
+        return FileResponse(buffer, as_attachment=True, filename='hello.pdf')

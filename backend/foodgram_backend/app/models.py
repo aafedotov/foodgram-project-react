@@ -139,9 +139,21 @@ class RecipeFavorite(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         verbose_name='Рецепт',
-        on_delete=models.CASCADE,
-        related_name='recipes'
+        on_delete=models.CASCADE
     )
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE,
-                      related_name='users', verbose_name='Автор')
+                             verbose_name='Автор')
+
+
+class RecipeCart(models.Model):
+    """Таблица для корзины покупок."""
+
+    recipe = models.ForeignKey(
+        Recipe,
+        verbose_name='Рецепт',
+        on_delete=models.CASCADE,
+    )
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE,
+                             verbose_name='Автор')

@@ -1,7 +1,7 @@
-from users.models import CustomUser
 from django.db import models
 from django.core.validators import MinValueValidator
-from datetime import datetime
+
+from users.models import CustomUser
 
 
 class MeasurementUnit(models.Model):

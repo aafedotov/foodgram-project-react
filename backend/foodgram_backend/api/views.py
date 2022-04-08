@@ -154,31 +154,39 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 
 class SubscribePostDestroyView(APIView):
+    """Представление для добавления и удаления подписок."""
 
     def post(self, request, **kwargs):
         author = get_object_or_404(User, id=self.kwargs["id"])
         user = self.request.user
         if author == user:
-            return Response('Нельзя подписываться на самого себя!', status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                'Нельзя подписываться на самого себя!',
+                status=status.HTTP_400_BAD_REQUEST)
         subscription, created = Subscription.objects.get_or_create(
             user=user,
             following=author
         )
         if not created:
-            return Response('Вы уже подписаны на данного автора!', status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                'Вы уже подписаны на данного автора!',
+                status=status.HTTP_400_BAD_REQUEST)
         subscription.save()
         serializer = SubscribeListSerializer(author)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, requets, **kwargs):
         author = get_object_or_404(User, id=self.kwargs["id"])
-        subscription = get_object_or_404(Subscription, user=self.request.user, following=author)
+        subscription = get_object_or_404(
+            Subscription,
+            user=self.request.user,
+            following=author)
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SubscribeListViewSet(ListViewSet):
-    """Вьюсет для списка подписок."""
+    """Представление для списка подписок."""
 
     pagination_class = CustomSetPagination
     permission_classes = [IsAuthenticated]
@@ -252,12 +260,11 @@ class CartPostDestroyView(APIView):
 
 
 class CartDownloadView(APIView):
-
+    """Представление для формирования и скачивания списка покупок."""
 
     def get(self, request, **kwargs):
 
         buffer = io.BytesIO()
-
         p = canvas.Canvas(buffer)
         line = 800
         pdfmetrics.registerFont(TTFont('FreeSans', 'FreeSans.ttf'))
@@ -286,12 +293,13 @@ class CartDownloadView(APIView):
             p.drawString(15, line, to_print.capitalize())
         line -= 55
         p.setFont('FreeSans', 14)
-        p.drawString(15, line, 'Список сгенерирован сервисом Продуктовый Помощник.')
+        p.drawString(
+            15, line, 'Список сгенерирован сервисом Продуктовый Помощник.'
+        )
         line -= 20
         p.setFont('FreeSans', 12)
         p.drawString(15, line, 'Автор: Андрей Федотов.')
         p.showPage()
         p.save()
-
         buffer.seek(0)
         return FileResponse(buffer, as_attachment=True, filename='hello.pdf')

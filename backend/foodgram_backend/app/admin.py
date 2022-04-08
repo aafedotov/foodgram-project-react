@@ -12,7 +12,7 @@ class RecipeAdmin(admin.ModelAdmin):
     """
 
     readonly_fields = ('in_favorites',)
-    list_display = ['author', 'name']
+    list_display = ['author', 'name', 'in_favorites']
     list_filter = ['author', 'name', 'tag']
     empty_value_display = '-пусто-'
 
@@ -24,7 +24,7 @@ class IngredientAdmin(admin.ModelAdmin):
     """Администрирование ингредиентов."""
 
     list_display = ['show_name', 'show_unit']
-    list_filter = ['show_name']
+    # list_filter = ['show_name']
 
     def show_name(self, obj):
         return obj.name.name

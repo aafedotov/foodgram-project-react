@@ -1,24 +1,45 @@
 from django.contrib import admin
 
-from .models import Tag, Recipe
+from .models import (
+    Tag, Recipe, MeasurementUnit, IngredientUnit, Ingredient, Subscription,
+    RecipeIngredient, RecipeTag, RecipeCart, RecipeFavorite
+)
 
 
 class RecipeAdmin(admin.ModelAdmin):
     """
     Администрирование рецептов.
     """
-    list_display = ['author', 'show_tags', 'show_ingredients']
-    list_filter = ['author']
-    search_fields = ['author']
-    ordering = ['author']
+
+    readonly_fields = ('in_favorites',)
+    list_display = ['author', 'name']
+    list_filter = ['author', 'name', 'tag']
     empty_value_display = '-пусто-'
 
-    def show_tags(self, obj):
-        return '\n'.join([item.name for item in obj.tag.all()])
+    def in_favorites(self, obj):
+        return RecipeFavorite.objects.filter(recipe=obj).count()
 
-    def show_ingredients(self, obj):
-        return '\n'.join([item.ingredient.name.name for item in obj.ingredient.all()])
+
+class IngredientAdmin(admin.ModelAdmin):
+    """Администрирование ингредиентов."""
+
+    list_display = ['show_name', 'show_unit']
+    list_filter = ['show_name']
+
+    def show_name(self, obj):
+        return obj.name.name
+
+    def show_unit(self, obj):
+        return obj.measurement_unit.name
 
 
 admin.site.register(Tag)
 admin.site.register(Recipe, RecipeAdmin)
+admin.site.register(MeasurementUnit)
+admin.site.register(IngredientUnit, IngredientAdmin)
+admin.site.register(Ingredient)
+admin.site.register(Subscription)
+admin.site.register(RecipeIngredient)
+admin.site.register(RecipeTag)
+admin.site.register(RecipeCart)
+admin.site.register(RecipeFavorite)

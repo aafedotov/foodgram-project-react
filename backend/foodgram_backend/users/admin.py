@@ -6,7 +6,7 @@ from .models import CustomUser
 class CustomUserAdmin(admin.ModelAdmin):
     """ Администрирование пользователей и их ролей."""
     list_display = ('username', 'email',)
-    list_filter = ('username',)
+    list_filter = ('username', 'email')
     search_fields = ('username',)
     ordering = ('username',)
     empty_value_display = '-пусто-'

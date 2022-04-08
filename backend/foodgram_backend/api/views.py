@@ -1,34 +1,33 @@
 import io
 
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status, viewsets, filters
-from rest_framework.generics import CreateAPIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.pagination import PageNumberPagination
 from django.http import FileResponse
-from reportlab.pdfgen import canvas
-
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from rest_framework import permissions, status, viewsets
+from rest_framework.generics import CreateAPIView
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from app.models import (
+    Tag, IngredientUnit, Recipe, Subscription, RecipeFavorite,
+    RecipeCart
+)
+from .filters import IngredientFilter, RecipeFilter
+from .mixins import (
+    ListRetrieveCreateViewSet, ListRetrieveViewSet, ListViewSet
+)
 from .serializers import (
     UserSerializer, ChangePasswordSerializer, TagSerializer,
     IngredientUnitSerializer, RecipePostSerializer,
     RecipeReadOnlySerializer, SubscribeListSerializer,
     SubscribeRecipeSerializer
 )
-from .mixins import (
-    ListRetrieveCreateViewSet, ListRetrieveViewSet, ListViewSet
-)
-from .filters import IngredientFilter, RecipeFilter
-from app.models import (
-    Tag, Ingredient, IngredientUnit, Recipe, Subscription, RecipeFavorite,
-    RecipeCart, RecipeIngredient
-)
-
 
 User = get_user_model()
 
@@ -40,31 +39,39 @@ class CustomSetPagination(PageNumberPagination):
 
 class CustomUserViewSet(ListRetrieveCreateViewSet):
     """View-set для эндпоинта users."""
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
 
 class UsersMeApiView(APIView):
     """Отдельно описываем поведение для users/me."""
-    permission_classes = [permissions.IsAuthenticated]
+
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         """Получаем себя при обращении на users/me."""
+
         serializer = UserSerializer(self.request.user)
         return Response(serializer.data)
 
 
 class ChangePasswordView(CreateAPIView):
     """Представление для эндпоинта смены пароля пользователя."""
+
     serializer_class = ChangePasswordSerializer
     model = User
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
 
     def get_object(self, queryset=None):
+        """Получаем в объект текущего пользователя."""
+
         obj = self.request.user
         return obj
 
     def post(self, request, *args, **kwargs):
+        """Описываем логику по смене пароля."""
+
         self.object = self.get_object()
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
@@ -93,7 +100,7 @@ class TagViewSet(ListRetrieveViewSet):
 
 
 class IngredientViewSet(ListRetrieveViewSet):
-    """Представление для эндпоинта Tag."""
+    """Представление для эндпоинта Ингредиентов."""
 
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('name',)
@@ -103,7 +110,7 @@ class IngredientViewSet(ListRetrieveViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    """View-set для эндпоинта Рецептов."""
+    """Представление для эндпоинта Рецептов."""
 
     pagination_class = CustomSetPagination
     queryset = Recipe.objects.all()
@@ -115,24 +122,32 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Определяем сериализаторы в зависимости от реквест методов."""
+
         if self.action in ('create', 'partial_update'):
             return RecipePostSerializer
         return RecipeReadOnlySerializer
 
     def perform_create(self, serializer):
         """Переопределяем сохранение автора рецепта."""
+
         author = self.request.user
         serializer.save(author=author)
 
     def get_queryset(self):
+        """Фильтруем выборку рецептов, в зависимости от Query Params."""
+
         if self.request.query_params.get('is_favorited') == '1':
             user = self.request.user
-            favorites = RecipeFavorite.objects.filter(user=user).values_list('recipe__id', flat=True)
+            favorites = RecipeFavorite.objects.filter(
+                user=user
+            ).values_list('recipe__id', flat=True)
             queryset = Recipe.objects.filter(id__in=favorites)
             return queryset
         if self.request.query_params.get('is_in_shopping_cart') == '1':
             user = self.request.user
-            in_cart = RecipeCart.objects.filter(user=user).values_list('recipe__id', flat=True)
+            in_cart = RecipeCart.objects.filter(
+                user=user
+            ).values_list('recipe__id', flat=True)
             queryset = Recipe.objects.filter(id__in=in_cart)
             return queryset
         return Recipe.objects.all()

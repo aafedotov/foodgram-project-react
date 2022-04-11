@@ -17,6 +17,23 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     is_subscribed = serializers.SerializerMethodField('subscribed_check')
 
+    class Meta:
+        fields = ['id',
+                  'username',
+                  'password',
+                  'email',
+                  'first_name',
+                  'last_name',
+                  'is_subscribed'
+                  ]
+        extra_kwargs = {'username': {'required': True},
+                        'email': {'required': True},
+                        'first_name': {'required': True},
+                        'last_name': {'required': True},
+                        'password': {'required': True}
+                        }
+        model = User
+
     def subscribed_check(self, obj):
         request = self.context.get('request', None)
         if request:
@@ -37,31 +54,15 @@ class UserSerializer(serializers.ModelSerializer):
         )
         return user
 
-    class Meta:
-        fields = ['id',
-                  'username',
-                  'password',
-                  'email',
-                  'first_name',
-                  'last_name',
-                  'is_subscribed'
-                  ]
-        extra_kwargs = {'username': {'required': True},
-                        'email': {'required': True},
-                        'first_name': {'required': True},
-                        'last_name': {'required': True},
-                        'password': {'required': True}
-                        }
-        model = User
-
 
 class ChangePasswordSerializer(serializers.Serializer):
     """Сериализатор для эндпоинта смены пароля пользователя."""
 
-    model = User
-
     current_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+    class Meta:
+        model = User
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -101,14 +102,8 @@ class IngredientSerializer(serializers.ModelSerializer):
 class IngredientUnitSerializer(serializers.ModelSerializer):
     """Сериализатор для ингредиентов и единиц измерения."""
 
-    name = serializers.SerializerMethodField('ingredient_name')
-    measurement_unit = serializers.SerializerMethodField('ingredient_unit')
-
-    def ingredient_unit(self, obj):
-        return obj.measurement_unit.name
-
-    def ingredient_name(self, obj):
-        return obj.name.name
+    name = serializers.CharField(source='name.name')
+    measurement_unit = serializers.CharField(source='measurement_unit.name')
 
     class Meta:
         fields = ('__all__')
@@ -118,18 +113,11 @@ class IngredientUnitSerializer(serializers.ModelSerializer):
 class RecipeReadIngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для модели, связывающей ингредиенты и рецепты."""
 
-    id = serializers.SerializerMethodField('ingredient_id')
-    name = serializers.SerializerMethodField('ingredient_name')
-    measurement_unit = serializers.SerializerMethodField('ingredient_unit')
-
-    def ingredient_id(self, obj):
-        return obj.ingredient.id
-
-    def ingredient_name(self, obj):
-        return obj.ingredient.name.name
-
-    def ingredient_unit(self, obj):
-        return obj.ingredient.measurement_unit.name
+    id = serializers.CharField(source='ingredient.id')
+    name = serializers.CharField(source='ingredient.name.name')
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit.name'
+    )
 
     class Meta:
         fields = ('id', 'amount', 'name', 'measurement_unit')
@@ -158,6 +146,11 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField('favorited_check')
     is_in_shopping_cart = serializers.SerializerMethodField('cart_check')
 
+    class Meta:
+        fields = ('tags', 'author', 'ingredients', 'name', 'text', 'image',
+                  'cooking_time', 'id', 'is_favorited', 'is_in_shopping_cart')
+        model = Recipe
+
     def cart_check(self, obj):
         request = self.context.get('request', None)
         if request:
@@ -182,11 +175,6 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
 
     def image_url(self, obj):
          return '/media/' + str(obj.image)
-
-    class Meta:
-        fields = ('tags', 'author', 'ingredients', 'name', 'text', 'image',
-                  'cooking_time', 'id', 'is_favorited', 'is_in_shopping_cart')
-        model = Recipe
 
 
 class RecipePostSerializer(serializers.ModelSerializer):
@@ -218,12 +206,10 @@ class RecipePostSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         ingredients_data = validated_data.pop('ingredient')
         tags_data = validated_data.pop('tags')
+        super().update(instance, validated_data)
         recipe = instance
-        author = recipe.author
         recipe.ingredient.select_related().all().delete()
         RecipeTag.objects.filter(recipe=recipe).delete()
-        Recipe.objects.filter(id=recipe.id).delete()
-        recipe = Recipe.objects.create(**validated_data, author=author)
         for ingredient in ingredients_data:
             ing = RecipeIngredient.objects.create(
                 ingredient=ingredient['id'],
@@ -259,7 +245,9 @@ class SubscribeListSerializer(serializers.ModelSerializer):
     """Сериализатор для подписок."""
 
     recipes = serializers.SerializerMethodField('get_recipes')
-    recipes_count = serializers.SerializerMethodField('count_recipes')
+    recipes_count = serializers.IntegerField(
+        source='recipes.count', read_only=True
+    )
     is_subscribed = serializers.SerializerMethodField('subscribed_check')
 
     def get_recipes(self, obj):
@@ -273,9 +261,6 @@ class SubscribeListSerializer(serializers.ModelSerializer):
 
     def subscribed_check(self, obj):
         return True
-
-    def count_recipes(self, obj):
-        return obj.recipes.all().count()
 
     class Meta:
 

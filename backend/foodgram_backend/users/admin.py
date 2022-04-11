@@ -7,7 +7,7 @@ class CustomUserAdmin(admin.ModelAdmin):
     """ Администрирование пользователей и их ролей."""
     list_display = ('username', 'email',)
     list_filter = ('username', 'email')
-    search_fields = ('username',)
+    search_fields = ('username', 'email')
     ordering = ('username',)
     empty_value_display = '-пусто-'
 

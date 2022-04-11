@@ -74,22 +74,20 @@ class ChangePasswordView(CreateAPIView):
 
         self.object = self.get_object()
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            if not self.object.check_password(
-                    serializer.data.get("current_password")):
-                return Response({"current_password": ["Неправильный пароль!"]},
-                                status=status.HTTP_400_BAD_REQUEST)
-            self.object.set_password(serializer.data.get("new_password"))
-            self.object.save()
-            response = {
-                'status': 'success',
-                'code': status.HTTP_204_NO_CONTENT,
-                'message': 'Пароль успешно обновлен!',
-                'data': []
-            }
-            return Response(response)
-        return Response(serializer.errors,
-                        status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        if not self.object.check_password(
+                serializer.data.get("current_password")):
+            return Response({"current_password": ["Неправильный пароль!"]},
+                            status=status.HTTP_400_BAD_REQUEST)
+        self.object.set_password(serializer.data.get("new_password"))
+        self.object.save()
+        response = {
+            'status': 'success',
+            'code': status.HTTP_204_NO_CONTENT,
+            'message': 'Пароль успешно обновлен!',
+            'data': []
+        }
+        return Response(response)
 
 
 class TagViewSet(ListRetrieveViewSet):

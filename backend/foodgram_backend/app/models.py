@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.db.models import UniqueConstraint
 
 from users.models import CustomUser
 
@@ -57,7 +58,7 @@ class Subscription(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(
+            UniqueConstraint(
                 fields=['user', 'following'],
                 name='unique_follow'
             )
@@ -88,6 +89,14 @@ class RecipeIngredient(models.Model):
     )
     amount = models.IntegerField(validators=[MinValueValidator(1)],
                                  verbose_name='Количество')
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=['ingredient', 'amount'],
+                name='unique_recipe_ingredient'
+            )
+        ]
 
 
 class Recipe(models.Model):
@@ -145,6 +154,14 @@ class RecipeFavorite(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE,
                              verbose_name='Автор')
 
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=['recipe', 'user'],
+                name='unique_recipe_favorite'
+            )
+        ]
+
 
 class RecipeCart(models.Model):
     """Таблица для корзины покупок."""
@@ -157,3 +174,11 @@ class RecipeCart(models.Model):
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE,
                              verbose_name='Автор')
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=['recipe', 'user'],
+                name='unique_recipe_cart'
+            )
+        ]

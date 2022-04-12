@@ -33,6 +33,7 @@ class IngredientAdmin(admin.ModelAdmin):
     def show_unit(self, obj):
         return obj.measurement_unit.name
 
+
 admin.site.register(Tag)
 admin.site.register(Recipe, RecipeAdmin)
 admin.site.register(MeasurementUnit)

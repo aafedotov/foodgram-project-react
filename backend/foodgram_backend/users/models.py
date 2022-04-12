@@ -10,7 +10,6 @@ class CustomUser(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'password', 'first_name', 'last_name']
 
-
     @property
     def is_admin_or_superuser(self):
         """Описываем свойства для пермишенов."""

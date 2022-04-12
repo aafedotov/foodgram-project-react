@@ -16,9 +16,11 @@ services:
       - ./.env
 
   backend:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
+#    build:
+#      context: ../backend
+#      dockerfile: Dockerfile
+    image: fedotovaa/foodgram:latest
+    restart: always
     volumes:
       - static_value:/app/django_static/
       - media_value:/app/media/
@@ -26,7 +28,6 @@ services:
       - db
     env_file:
       - ./.env
-
 
   nginx:
     image: nginx:1.19.3

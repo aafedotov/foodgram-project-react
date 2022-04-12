@@ -174,7 +174,7 @@ class RecipeReadOnlySerializer(serializers.ModelSerializer):
         return False
 
     def image_url(self, obj):
-         return '/media/' + str(obj.image)
+        return '/media/' + str(obj.image)
 
 
 class RecipePostSerializer(serializers.ModelSerializer):
@@ -196,8 +196,8 @@ class RecipePostSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.create(**validated_data)
         for ingredient in ingredients_data:
             ing = RecipeIngredient.objects.create(
-                                            ingredient=ingredient['id'],
-                                            amount=ingredient['amount'])
+                ingredient=ingredient['id'],
+                amount=ingredient['amount'])
             recipe.ingredient.add(ing)
         for tag in tags_data:
             RecipeTag.objects.create(recipe=recipe, tag=tag)
@@ -233,10 +233,9 @@ class SubscribeRecipeSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField('image_url')
 
     def image_url(self, obj):
-         return '/media/' + str(obj.image)
+        return '/media/' + str(obj.image)
 
     class Meta:
-
         fields = ('id', 'name', 'image', 'cooking_time')
         model = Recipe
 

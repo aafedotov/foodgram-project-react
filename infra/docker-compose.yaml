@@ -2,9 +2,10 @@ version: '3.3'
 services:
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+#    build:
+#      context: ../frontend
+#      dockerfile: Dockerfile
+    image: fedotovaa/foodgram-frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
 

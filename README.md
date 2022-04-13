@@ -1,5 +1,5 @@
 ![status_badge](https://github.com/aafedotov/foodgram-project-react/actions/workflows/foodgram_cicd.yml/badge.svg)
-### Ссылки на боевой сервер:
+
 https://aafedotov-foodgram.myddns.me/  
 https://aafedotov-foodgram.myddns.me/admin/
 
